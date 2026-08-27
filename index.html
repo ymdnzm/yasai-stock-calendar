@@ -58,8 +58,22 @@ dialog::backdrop{background:rgba(20,22,20,.38)}
 .field label,.label{display:block;font-size:12px;font-weight:800;color:#555a52;margin-bottom:6px}
 input[type="date"],select,textarea,input[type="text"]{width:100%;min-height:44px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--text);padding:10px 11px;font-size:16px}
 textarea{min-height:78px;resize:vertical}
-.four{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.date-item{min-width:0}
+.four .date-item input[type="date"]{
+  display:block;
+  width:100%;
+  min-width:0;
+  max-width:100%;
+  box-sizing:border-box;
+  padding-left:6px;
+  padding-right:6px;
+  font-size:14px;
+  overflow:hidden;
+  -webkit-appearance:none;
+  appearance:none;
+}
+
+.four{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.date-item{min-width:0;width:100%;overflow:hidden}
 .date-no{font-size:13px;font-weight:850;margin:0 0 4px 2px}
 .weekday{min-height:18px;font-size:12px;font-weight:750;color:var(--muted);margin:4px 0 0 2px}
 .radios{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -82,9 +96,10 @@ textarea{min-height:78px;resize:vertical}
 .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#30342f;color:#fff;padding:10px 14px;border-radius:999px;font-size:12px;opacity:0;pointer-events:none;transition:.2s;z-index:999;max-width:calc(100% - 30px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .toast.show{opacity:1}
 @media(max-width:430px){
+  .modal{padding-left:14px;padding-right:14px}
   .day{height:80px;padding:28px 3px 4px}.date-num{top:4px;left:4px}.entry{font-size:10px}
   .actions{grid-template-columns:1fr}.four{grid-template-columns:1fr 1fr;gap:7px}
-  .four input[type="date"]{padding:8px 5px;font-size:13px}.options{grid-template-columns:1fr}
+  .four input[type="date"]{padding:8px 3px;font-size:12.5px;min-width:0;max-width:100%}.options{grid-template-columns:1fr}
 }
 </style>
 </head>
