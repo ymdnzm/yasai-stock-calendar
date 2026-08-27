@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f7f4ec">
+<meta name="description" content="野菜ストックと肉の賞味期限を管理する月間カレンダー">
+<title>野菜ストックカレンダー</title>
+<style>
+:root{
+  --bg:#f7f4ec;--card:#fffdf8;--text:#30342f;--muted:#777b73;--line:#e5e0d5;
+  --accent:#5d765f;--accentSoft:#edf3e9;--veg:#47714e;--meat:#9b574a;
+  --danger:#a34d4d;--shadow:0 7px 24px rgba(62,55,42,.08)
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic UI","Yu Gothic",sans-serif;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+.app{width:min(100%,760px);margin:0 auto;padding:14px 12px 42px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:2px 2px 12px}
+h1{font-size:20px;margin:0}
+.sub{font-size:12px;color:var(--muted);margin:4px 0 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow)}
+.calendar-card{padding:12px}
+.month-head{display:grid;grid-template-columns:48px 1fr 48px;align-items:center;margin-bottom:8px}
+.month-label{text-align:center;font-size:18px;font-weight:800}
+.nav,.today-btn{border:1px solid var(--line);background:var(--card);border-radius:11px;min-height:42px;color:var(--text);padding:0 10px}
+.today-btn:disabled{opacity:.38;cursor:default}
+.nav{border:0;background:transparent;font-size:24px}
+.weekdays,.grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
+.weekdays div{text-align:center;font-size:11px;font-weight:750;color:var(--muted);padding:5px 0 7px}
+.day{height:88px;min-width:0;position:relative;padding:30px 4px 5px;border:0;border-top:1px solid var(--line);border-right:1px solid var(--line);background:rgba(255,255,255,.26);text-align:left;color:var(--text);overflow:hidden;border-radius:0;-webkit-appearance:none;appearance:none}
+.day:nth-child(7n){border-right:0}
+.day.other{opacity:.34}
+.day.today{background:var(--accentSoft)}
+.date-num{position:absolute;top:5px;left:5px;font-size:12px;font-weight:750;line-height:20px}
+.today .date-num{color:var(--accent);font-weight:900}
+.today .date-num::after{content:"";display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--accent);margin-left:4px;vertical-align:middle}
+.entry{font-size:10.5px;line-height:1.35;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:clip;letter-spacing:-.02em}
+.entry.veg{color:var(--veg)}
+.entry.meat{color:var(--meat)}
+.entry.eaten{opacity:.36;text-decoration:line-through}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}
+.btn{min-height:46px;border-radius:13px;border:1px solid var(--line);background:#fff;color:var(--text);font-weight:750;padding:9px 12px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.danger{color:var(--danger);border-color:#e6c8c8}
+.btn.small{min-height:38px;font-size:12px;padding:7px 10px}
+.legend{margin:10px 3px 0;font-size:11px;color:var(--muted);line-height:1.55}
+.tools{display:flex;gap:7px;flex-wrap:wrap;margin-top:14px}
+dialog{width:min(calc(100% - 24px),560px);border:0;border-radius:20px;padding:0;background:var(--card);color:var(--text);box-shadow:0 22px 70px rgba(0,0,0,.25);max-height:90vh}
+dialog::backdrop{background:rgba(20,22,20,.38)}
+.modal{padding:18px;max-height:90vh;overflow:auto}
+.modal-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:14px}
+.modal-head h2{margin:0;font-size:18px}
+.modal-head p{margin:4px 0 0;font-size:12px;color:var(--muted)}
+.close{border:0;background:#f1ede5;border-radius:50%;width:34px;height:34px;font-size:18px;flex:none}
+.field{margin:13px 0}
+.field label,.label{display:block;font-size:12px;font-weight:800;color:#555a52;margin-bottom:6px}
+input[type="date"],select,textarea,input[type="text"]{width:100%;min-height:44px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--text);padding:10px 11px;font-size:16px}
+textarea{min-height:78px;resize:vertical}
+.four{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.date-item{min-width:0}
+.date-no{font-size:13px;font-weight:850;margin:0 0 4px 2px}
+.weekday{min-height:18px;font-size:12px;font-weight:750;color:var(--muted);margin:4px 0 0 2px}
+.radios{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.radio{border:1px solid var(--line);border-radius:12px;padding:11px;background:#fff;font-size:13px}
+.options{display:grid;grid-template-columns:1fr 1fr;gap:7px;max-height:220px;overflow:auto;padding:2px}
+.option{border:1px solid var(--line);background:#fff;border-radius:11px;padding:9px;font-size:12px}
+.inline{display:grid;grid-template-columns:1fr auto;gap:7px;align-items:end}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{background:#f0ece3;border-radius:999px;padding:6px 9px;font-size:12px;display:inline-flex;gap:6px;align-items:center}
+.chip button{border:0;background:transparent;padding:0}
+.summary{border:1px solid var(--line);border-radius:14px;padding:12px;background:#fff;margin-bottom:12px}
+.big{font-size:16px;font-weight:850;margin:3px 0}
+.big.veg{color:var(--veg)}
+.big.meat{color:var(--meat)}
+.status{display:inline-block;font-size:11px;border-radius:999px;padding:4px 8px;background:#efede8;color:var(--muted);margin-top:5px}
+.status.done{background:#e8f0e7;color:#46624a}
+.stack{display:grid;gap:8px}
+.note{padding:10px 11px;border-radius:12px;background:#f4f1ea;font-size:12px;color:#656960;line-height:1.5}
+.reason{margin-top:8px;padding:8px 10px;border-radius:10px;background:#f6f1eb;font-size:12px;color:#6d635b;line-height:1.5}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#30342f;color:#fff;padding:10px 14px;border-radius:999px;font-size:12px;opacity:0;pointer-events:none;transition:.2s;z-index:999;max-width:calc(100% - 30px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.toast.show{opacity:1}
+@media(max-width:430px){
+  .day{height:80px;padding:28px 3px 4px}.date-num{top:4px;left:4px}.entry{font-size:10px}
+  .actions{grid-template-columns:1fr}.four{grid-template-columns:1fr 1fr;gap:7px}
+  .four input[type="date"]{padding:8px 5px;font-size:13px}.options{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <div>
+      <h1>野菜ストックカレンダー</h1>
+      <p class="sub"><span style="color:var(--veg);font-weight:800">緑＝野菜の作成日</span>　<span style="color:var(--meat);font-weight:800">茶＝肉</span></p>
+    </div>
+    <div style="display:flex;gap:7px;align-items:center">
+      <button class="today-btn" id="undoBtn" type="button" disabled>↶ 戻る</button>
+      <button class="today-btn" id="todayBtn" type="button">今日</button>
+    </div>
+  </div>
+
+  <section class="card calendar-card">
+    <div class="month-head">
+      <button class="nav" id="prevMonth" type="button" aria-label="前の月">‹</button>
+      <div class="month-label" id="monthLabel">2026年 8月</div>
+      <button class="nav" id="nextMonth" type="button" aria-label="次の月">›</button>
+    </div>
+    <div class="weekdays"><div>日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div>土</div></div>
+    <div class="grid" id="calendarGrid"></div>
+  </section>
+
+  <div class="actions">
+    <button class="btn primary" id="addVegBtn" type="button">＋ 野菜ストック</button>
+    <button class="btn" id="addMeatBtn" type="button">＋ 肉</button>
+  </div>
+
+  <div class="legend">
+    予定のある日をタップすると、食べた／繰り越し／1食移動に加えて、そのストック4食分をまとめて編集・削除できます。<br>
+    必要な日だけあとからメモを追加できます。予定のない日では、未来の1食分をその日に前倒しできます。
+  </div>
+
+  <div class="tools">
+    <button class="btn small" id="exportBtn" type="button">バックアップ</button>
+    <button class="btn small" id="importBtn" type="button">復元</button>
+    <button class="btn small danger" id="resetBtn" type="button">全データ削除</button>
+    <input id="importFile" type="file" accept="application/json" hidden>
+  </div>
+</div>
+
+<dialog id="vegDialog">
+<div class="modal">
+  <div class="modal-head"><div><h2>野菜ストックを追加</h2><p>1回＝4食分</p></div><button class="close" data-close="vegDialog" type="button">×</button></div>
+  <div class="field"><label for="vegMade">作った日</label><input type="date" id="vegMade"></div>
+  <div class="field">
+    <div class="label">食べる予定日（4日）</div>
+    <div class="four">
+      <div class="date-item"><div class="date-no">①</div><input type="date" class="vegEat"><div class="weekday"></div></div>
+      <div class="date-item"><div class="date-no">②</div><input type="date" class="vegEat"><div class="weekday"></div></div>
+      <div class="date-item"><div class="date-no">③</div><input type="date" class="vegEat"><div class="weekday"></div></div>
+      <div class="date-item"><div class="date-no">④</div><input type="date" class="vegEat"><div class="weekday"></div></div>
+    </div>
+  </div>
+  <div class="note">①〜③の日付を前後に動かすと、それより後ろの日付も同じ日数だけ連動して動きます。②〜④は、ひとつ前の日付より後の日だけ選べます。</div>
+  <div class="actions"><button class="btn primary" id="saveVeg" type="button">登録する</button><button class="btn" data-close="vegDialog" type="button">キャンセル</button></div>
+</div>
+</dialog>
+
+<dialog id="meatDialog">
+<div class="modal">
+  <div class="modal-head"><div><h2>肉を追加</h2><p>賞味期限または冷凍</p></div><button class="close" data-close="meatDialog" type="button">×</button></div>
+  <div class="field">
+    <div class="label">肉の状態</div>
+    <div class="radios">
+      <label class="radio"><input type="radio" name="meatType" value="expiry" checked> 賞味期限あり</label>
+      <label class="radio"><input type="radio" name="meatType" value="frozen"> 冷凍</label>
+    </div>
+  </div>
+  <div class="field" id="expiryField"><label for="meatExpiry">賞味期限</label><input type="date" id="meatExpiry"></div>
+  <div class="field"><div class="label">使う予定日</div><div class="options" id="mealDateOptions"></div></div>
+  <div class="field">
+    <div class="label">ほかの日を追加</div>
+    <div class="inline"><input type="date" id="extraMeatDate"><button class="btn small" id="addExtraDate" type="button">追加</button></div>
+    <div class="chips" id="extraDateChips"></div>
+  </div>
+  <div class="actions"><button class="btn primary" id="saveMeat" type="button">登録する</button><button class="btn" data-close="meatDialog" type="button">キャンセル</button></div>
+</div>
+</dialog>
+
+<dialog id="dayDialog">
+<div class="modal">
+  <div class="modal-head"><div><h2 id="dayTitle">予定</h2><p id="daySubtitle"></p></div><button class="close" data-close="dayDialog" type="button">×</button></div>
+  <div id="dayContent"></div>
+</div>
+</dialog>
+
+
+
+<dialog id="memoDialog">
+<div class="modal">
+  <div class="modal-head"><div><h2>メモを追加</h2><p>任意です</p></div><button class="close" data-close="memoDialog" type="button">×</button></div>
+  <div class="field"><label for="skipMemoOnly">メモ</label><textarea id="skipMemoOnly" placeholder="例：会社の飲み会"></textarea></div>
+  <div class="actions"><button class="btn primary" id="saveSkipMemo" type="button">保存する</button><button class="btn" data-close="memoDialog" type="button">キャンセル</button></div>
+</div>
+</dialog>
+
+
+<dialog id="editBatchDialog">
+<div class="modal">
+  <div class="modal-head">
+    <div><h2>野菜ストックを編集</h2><p>作成日と4食分の予定をまとめて変更します</p></div>
+    <button class="close" data-close="editBatchDialog" type="button">×</button>
+  </div>
+
+  <div class="field">
+    <label for="editMade">作った日</label>
+    <input type="date" id="editMade">
+  </div>
+
+  <div class="field">
+    <div class="label">食べる予定日（4日）</div>
+    <div class="four">
+      <div class="date-item"><div class="date-no">①</div><input type="date" class="editEat"><div class="edit-weekday weekday"></div></div>
+      <div class="date-item"><div class="date-no">②</div><input type="date" class="editEat"><div class="edit-weekday weekday"></div></div>
+      <div class="date-item"><div class="date-no">③</div><input type="date" class="editEat"><div class="edit-weekday weekday"></div></div>
+      <div class="date-item"><div class="date-no">④</div><input type="date" class="editEat"><div class="edit-weekday weekday"></div></div>
+    </div>
+  </div>
+
+  <div class="note">
+    ①〜③を前後に動かすと、それより後ろの日付も同じ日数だけ連動して動きます。
+    他の野菜ストックと重なる日には変更できません。
+  </div>
+
+  <div class="actions">
+    <button class="btn primary" id="saveBatchEdit" type="button">変更を保存</button>
+    <button class="btn" data-close="editBatchDialog" type="button">キャンセル</button>
+  </div>
+</div>
+</dialog>
+
+<dialog id="moveDialog">
+<div class="modal">
+  <div class="modal-head"><div><h2>この1食を移動</h2><p>野菜と肉をセットで移動します</p></div><button class="close" data-close="moveDialog" type="button">×</button></div>
+  <div class="field"><label for="moveDate">移動先</label><input type="date" id="moveDate"></div>
+  <div class="actions"><button class="btn primary" id="confirmMove" type="button">移動する</button><button class="btn" data-close="moveDialog" type="button">キャンセル</button></div>
+</div>
+</dialog>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(()=>{
+"use strict";
+const KEY="veg_stock_calendar_final_v1";
+const HISTORY_KEY="veg_stock_calendar_final_v1_history";
+const HISTORY_LIMIT=50;
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const pad=n=>String(n).padStart(2,"0");
+const uid=()=>Math.random().toString(36).slice(2)+Date.now().toString(36);
+const toStr=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const fromStr=s=>{const [y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)};
+const add=(s,n)=>{const d=fromStr(s);d.setDate(d.getDate()+n);return toStr(d)};
+const short=s=>{const d=fromStr(s);return `${d.getMonth()+1}/${d.getDate()}`};
+const jp=s=>{const d=fromStr(s);return `${d.getMonth()+1}月${d.getDate()}日`};
+const weekday=s=>s?`（${["日","月","火","水","木","金","土"][fromStr(s).getDay()]}）`:"";
+const dayDiff=(from,to)=>{
+  const a=fromStr(from),b=fromStr(to);
+  a.setHours(12,0,0,0);b.setHours(12,0,0,0);
+  return Math.round((b-a)/86400000);
+};
+const blank=()=>({batches:[],vegByDate:{},meatByDate:{},eaten:[],skips:{}});
+function load(){try{const x=JSON.parse(localStorage.getItem(KEY));return x&&x.vegByDate?x:blank()}catch{return blank()}}
+try{localStorage.removeItem("veg_stock_calendar_final_v1_undo")}catch{}
+let state=load();
+Object.keys(state.skips||{}).forEach(d=>{
+  const s=state.skips[d]||{};
+  if(typeof s==="string"){
+    state.skips[d]={memo:s,at:Date.now()};
+  }else{
+    const mergedMemo=s.memo || s.reason || "";
+    state.skips[d]={memo:mergedMemo,at:s.at||Date.now()};
+  }
+});
+const now=new Date();
+let view=new Date(now.getFullYear(),now.getMonth(),1);
+let extraMeatDates=[],selectedDay=null,pendingMemo=null,pendingMove=null,pendingBatchEdit=null;
+
+function getHistory(){
+  try{
+    const h=JSON.parse(localStorage.getItem(HISTORY_KEY)||"[]");
+    return Array.isArray(h)?h:[];
+  }catch{
+    return [];
+  }
+}
+function setHistory(h){
+  localStorage.setItem(HISTORY_KEY,JSON.stringify(h.slice(-HISTORY_LIMIT)));
+}
+function updateUndoButton(){
+  const btn=$("#undoBtn");
+  if(!btn)return;
+  const count=getHistory().length;
+  btn.disabled=count===0;
+  btn.textContent=count?`↶ 戻る (${count})`:"↶ 戻る";
+}
+function save(){
+  const next=JSON.stringify(state);
+  const previous=localStorage.getItem(KEY);
+
+  if(previous!==next){
+    const history=getHistory();
+
+    if(previous){
+      history.push(previous);
+    }else if(next!==JSON.stringify(blank())){
+      history.push(JSON.stringify(blank()));
+    }
+
+    setHistory(history);
+    localStorage.setItem(KEY,next);
+  }
+
+  render();
+  updateUndoButton();
+}
+function undoOne(){
+  const history=getHistory();
+  if(!history.length)return;
+
+  const previous=history.pop();
+
+  try{
+    state=JSON.parse(previous);
+    localStorage.setItem(KEY,previous);
+    setHistory(history);
+    render();
+    updateUndoButton();
+    toast("1つ前の状態に戻しました");
+  }catch{
+    setHistory([]);
+    updateUndoButton();
+    alert("戻す履歴を読み込めませんでした。");
+  }
+}
+function batch(id){return state.batches.find(b=>b.id===id)}
+function vegId(date){return state.vegByDate[date]||null}
+function vegDates(id){return Object.keys(state.vegByDate).filter(d=>state.vegByDate[d]===id).sort()}
+function toast(msg){const el=$("#toast");el.textContent=msg;el.classList.add("show");clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove("show"),2200)}
+function cleanupBatches(){const used=new Set(Object.values(state.vegByDate));state.batches=state.batches.filter(b=>used.has(b.id))}
+function setEaten(date,on){state.eaten=on?[...new Set([...state.eaten,date])]:state.eaten.filter(x=>x!==date)}
+function isEaten(date){return state.eaten.includes(date)}
+
+function render(){
+  const grid=$("#calendarGrid");grid.innerHTML="";
+  const y=view.getFullYear(),m=view.getMonth();
+  $("#monthLabel").textContent=`${y}年 ${m+1}月`;
+  const first=new Date(y,m,1),start=new Date(y,m,1-first.getDay());
+  const today=toStr(new Date());
+  for(let i=0;i<42;i++){
+    const d=new Date(start);d.setDate(start.getDate()+i);const ds=toStr(d);
+    const cell=document.createElement("button");cell.type="button";cell.className="day";
+    if(d.getMonth()!==m)cell.classList.add("other");if(ds===today)cell.classList.add("today");
+    const n=document.createElement("div");n.className="date-num";n.textContent=d.getDate();cell.appendChild(n);
+    const id=vegId(ds);
+    if(id){const b=batch(id);if(b){const e=document.createElement("div");e.className="entry veg"+(isEaten(ds)?" eaten":"");e.textContent=short(b.madeDate);cell.appendChild(e)}}
+    const meat=state.meatByDate[ds];
+    if(meat){const e=document.createElement("div");e.className="entry meat"+(isEaten(ds)?" eaten":"");e.textContent=meat.type==="frozen"?"冷凍":short(meat.expiryDate);cell.appendChild(e)}
+    cell.addEventListener("click",()=>openDay(ds));grid.appendChild(cell);
+  }
+}
+
+function updateWeekdays(){
+  const dates=$$(".vegEat"),labels=$$(".weekday");
+  dates.forEach((el,i)=>{if(labels[i])labels[i].textContent=weekday(el.value)});
+}
+function updateLimits(){
+  const dates=$$(".vegEat"),made=$("#vegMade").value;
+  dates[0].min=made||"";
+  for(let i=1;i<dates.length;i++){
+    const prev=dates[i-1].value;
+    dates[i].min=prev?add(prev,1):"";
+  }
+  updateWeekdays();
+}
+
+function cascadeVegDates(changedIndex,oldValue,newValue){
+  if(!oldValue||!newValue||oldValue===newValue){
+    updateLimits();
+    return;
+  }
+
+  const dates=$$(".vegEat");
+  const delta=dayDiff(oldValue,newValue);
+
+  // 変更した日より後ろを、同じ日数だけ前後にずらす
+  for(let i=changedIndex+1;i<dates.length;i++){
+    if(dates[i].value){
+      dates[i].value=add(dates[i].value,delta);
+    }
+  }
+
+  // 念のため、順番が崩れた場合だけ最小限補正する
+  for(let i=1;i<dates.length;i++){
+    const prev=dates[i-1].value;
+    if(prev&&dates[i].value<=prev){
+      dates[i].value=add(prev,1);
+    }
+  }
+
+  updateLimits();
+}
+
+function updateEditWeekdays(){
+  const dates=$$(".editEat"),labels=$$(".edit-weekday");
+  dates.forEach((el,i)=>{if(labels[i])labels[i].textContent=weekday(el.value)});
+}
+function updateEditLimits(){
+  const dates=$$(".editEat"),made=$("#editMade").value;
+  if(dates[0])dates[0].min=made||"";
+  for(let i=1;i<dates.length;i++){
+    const prev=dates[i-1].value;
+    dates[i].min=prev?add(prev,1):"";
+  }
+  updateEditWeekdays();
+}
+function cascadeEditDates(changedIndex,oldValue,newValue){
+  if(!oldValue||!newValue||oldValue===newValue){
+    updateEditLimits();
+    return;
+  }
+  const dates=$$(".editEat");
+  const delta=dayDiff(oldValue,newValue);
+
+  for(let i=changedIndex+1;i<dates.length;i++){
+    if(dates[i].value)dates[i].value=add(dates[i].value,delta);
+  }
+
+  for(let i=1;i<dates.length;i++){
+    const prev=dates[i-1].value;
+    if(prev&&dates[i].value<=prev)dates[i].value=add(prev,1);
+  }
+  updateEditLimits();
+}
+function openBatchEdit(batchId){
+  const b=batch(batchId);
+  if(!b)return;
+  pendingBatchEdit=batchId;
+
+  const dates=vegDates(batchId);
+  if(dates.length!==4){
+    alert("このストックの予定数が4食ではないため、まとめ編集できません。");
+    pendingBatchEdit=null;
+    return;
+  }
+
+  $("#editMade").value=b.madeDate;
+  $("#editMade").dataset.prev=b.madeDate;
+
+  $$(".editEat").forEach((el,i)=>{
+    el.value=dates[i];
+    el.dataset.prev=dates[i];
+  });
+
+  updateEditLimits();
+  $("#editBatchDialog").showModal();
+}
+
+function openVeg(){
+  const t=toStr(new Date());
+  $("#vegMade").value=t;
+  $("#vegMade").dataset.prev=t;
+  $$(".vegEat").forEach((el,i)=>{
+    el.value=add(t,i);
+    el.dataset.prev=el.value;
+  });
+  updateLimits();
+  $("#vegDialog").showModal();
+}
+$("#vegMade").addEventListener("change",e=>{
+  if(e.target.value){
+    const dates=$$(".vegEat");
+    // 作成日変更時は、①〜④を同じ日数だけまとめて移動
+    const oldMade=e.target.dataset.prev||e.target.value;
+    const delta=dayDiff(oldMade,e.target.value);
+    if(dates.every(x=>x.value)){
+      dates.forEach(el=>el.value=add(el.value,delta));
+    }else{
+      dates.forEach((el,i)=>el.value=add(e.target.value,i));
+    }
+    e.target.dataset.prev=e.target.value;
+    updateLimits();
+  }
+});
+
+$$(".vegEat").forEach((el,index)=>{
+  el.addEventListener("focus",()=>{
+    el.dataset.prev=el.value||"";
+  });
+  el.addEventListener("change",()=>{
+    const oldValue=el.dataset.prev||"";
+    const newValue=el.value;
+
+    // ①は作成日より前にはできない
+    if(index===0){
+      const made=$("#vegMade").value;
+      if(made&&newValue<made){
+        el.value=made;
+      }
+    }else{
+      // ②〜④はひとつ前より後の日だけ
+      const prev=$$(".vegEat")[index-1].value;
+      if(prev&&el.value<=prev){
+        el.value=add(prev,1);
+      }
+    }
+
+    cascadeVegDates(index,oldValue,el.value);
+    el.dataset.prev=el.value;
+  });
+});
+
+$("#editMade").addEventListener("focus",e=>{
+  e.target.dataset.prev=e.target.value||"";
+});
+$("#editMade").addEventListener("change",e=>{
+  const oldMade=e.target.dataset.prev||e.target.value;
+  const newMade=e.target.value;
+  if(!newMade)return;
+
+  const dates=$$(".editEat");
+  const delta=dayDiff(oldMade,newMade);
+
+  if(dates.every(x=>x.value)){
+    dates.forEach(el=>el.value=add(el.value,delta));
+  }else{
+    dates.forEach((el,i)=>el.value=add(newMade,i));
+  }
+
+  e.target.dataset.prev=newMade;
+  dates.forEach(el=>el.dataset.prev=el.value);
+  updateEditLimits();
+});
+
+$$(".editEat").forEach((el,index)=>{
+  el.addEventListener("focus",()=>{
+    el.dataset.prev=el.value||"";
+  });
+  el.addEventListener("change",()=>{
+    const oldValue=el.dataset.prev||"";
+    const newValue=el.value;
+
+    if(index===0){
+      const made=$("#editMade").value;
+      if(made&&newValue<made)el.value=made;
+    }else{
+      const prev=$$(".editEat")[index-1].value;
+      if(prev&&el.value<=prev)el.value=add(prev,1);
+    }
+
+    cascadeEditDates(index,oldValue,el.value);
+    el.dataset.prev=el.value;
+  });
+});
+
+
+$("#saveVeg").addEventListener("click",()=>{
+  const made=$("#vegMade").value,dates=$$(".vegEat").map(x=>x.value);
+  if(!made||dates.some(x=>!x)){alert("作った日と4つの予定日を入力してください。");return}
+  if(dates[0]<made||dates[1]<=dates[0]||dates[2]<=dates[1]||dates[3]<=dates[2]){alert("①は作った日以降、②〜④は前の日付より後を選んでください。");return}
+  const conflict=dates.find(d=>vegId(d));if(conflict){alert(`${jp(conflict)}にはすでに野菜ストックがあります。`);return}
+  const id=uid();state.batches.push({id,madeDate:made,createdAt:Date.now()});dates.forEach(d=>state.vegByDate[d]=id);
+  $("#vegDialog").close();save();toast("4食分を登録しました");
+});
+
+function renderMealOptions(){
+  const wrap=$("#mealDateOptions");wrap.innerHTML="";
+  const today=toStr(new Date());
+  const dates=Object.keys(state.vegByDate).filter(d=>d>=today).sort().slice(0,40);
+  if(!dates.length){wrap.innerHTML='<div class="note">野菜の予定がまだありません。下から日付を直接追加できます。</div>';return}
+  dates.forEach(d=>{const l=document.createElement("label");l.className="option";const b=batch(vegId(d));l.innerHTML=`<input type="checkbox" class="meatUse" value="${d}"> ${jp(d)}${b?` <span style="color:var(--veg);font-weight:800">${short(b.madeDate)}</span>`:""}`;wrap.appendChild(l)});
+}
+function renderChips(){const w=$("#extraDateChips");w.innerHTML="";extraMeatDates.forEach(d=>{const c=document.createElement("span");c.className="chip";c.textContent=jp(d)+" ";const b=document.createElement("button");b.type="button";b.textContent="×";b.addEventListener("click",()=>{extraMeatDates=extraMeatDates.filter(x=>x!==d);renderChips()});c.appendChild(b);w.appendChild(c)})}
+function openMeat(){
+  extraMeatDates=[];$("#extraMeatDate").value="";$("#meatExpiry").value=toStr(new Date());
+  $$('input[name="meatType"]').forEach(r=>r.checked=r.value==="expiry");$("#expiryField").style.display="";
+  renderMealOptions();renderChips();$("#meatDialog").showModal();
+}
+$$('input[name="meatType"]').forEach(r=>r.addEventListener("change",()=>{$("#expiryField").style.display=$('input[name="meatType"]:checked').value==="expiry"?"":"none"}));
+$("#addExtraDate").addEventListener("click",()=>{const d=$("#extraMeatDate").value;if(d&&!extraMeatDates.includes(d)){extraMeatDates.push(d);extraMeatDates.sort();renderChips()}$("#extraMeatDate").value=""});
+$("#saveMeat").addEventListener("click",()=>{
+  const type=$('input[name="meatType"]:checked').value,expiry=$("#meatExpiry").value;
+  if(type==="expiry"&&!expiry){alert("賞味期限を入力してください。");return}
+  const dates=[...new Set([...$$(".meatUse:checked").map(x=>x.value),...extraMeatDates])].sort();
+  if(!dates.length){alert("使う予定日を選んでください。");return}
+  const conflicts=dates.filter(d=>state.meatByDate[d]);if(conflicts.length&&!confirm(`${conflicts.map(jp).join("、")}にはすでに肉があります。置き換えますか？`))return;
+  dates.forEach(d=>state.meatByDate[d]={type,expiryDate:type==="expiry"?expiry:null});
+  $("#meatDialog").close();save();toast("肉を登録しました");
+});
+
+function candidateFor(date){
+  const list=state.batches.map(b=>({b,future:vegDates(b.id).filter(d=>d>date)})).filter(x=>x.future.length);
+  list.sort((x,y)=>x.future[0].localeCompare(y.future[0]));
+  return list[0]||null;
+}
+function forwardOne(date){
+  if(vegId(date)){alert("この日はすでに野菜ストック予定があります。");return}
+  const c=candidateFor(date);if(!c){alert("前倒しできる未来のストックがありません。");return}
+  const future=c.future.sort(),from=future[future.length-1];
+  delete state.vegByDate[from];state.vegByDate[date]=c.b.id;
+  if(date<c.b.madeDate)c.b.madeDate=date;
+  save();toast(`${short(from)}の1食を${short(date)}へ前倒ししました`);
+}
+
+function openDay(date){
+  selectedDay=date;$("#dayTitle").textContent=jp(date);$("#daySubtitle").textContent="この日の予定";
+  const w=$("#dayContent");w.innerHTML="";
+  const id=vegId(date),b=id?batch(id):null,meat=state.meatByDate[date],skip=state.skips[date];
+  if(id||meat){
+    const box=document.createElement("div");box.className="summary";
+    if(b){const x=document.createElement("div");x.className="big veg";x.textContent=`野菜 ${short(b.madeDate)}`;box.appendChild(x)}
+    if(meat){const x=document.createElement("div");x.className="big meat";x.textContent=meat.type==="frozen"?"肉 冷凍":`肉 ${short(meat.expiryDate)}`;box.appendChild(x)}
+    const st=document.createElement("span");st.className="status"+(isEaten(date)?" done":"");st.textContent=isEaten(date)?"食べた":"予定";box.appendChild(st);w.appendChild(box);
+    const stack=document.createElement("div");stack.className="stack";
+    const eat=document.createElement("button");eat.className="btn primary";eat.type="button";eat.textContent=isEaten(date)?"「食べた」を取り消す":"食べた";
+    eat.addEventListener("click",()=>{setEaten(date,!isEaten(date));$("#dayDialog").close();save()});stack.appendChild(eat);
+    if(id&&!isEaten(date)){
+      const sk=document.createElement("button");sk.className="btn";sk.type="button";sk.textContent="食べなかった → 後ろへ繰り越す";
+      sk.addEventListener("click",()=>{
+        shiftAfterSkip(date);
+        state.skips[date]=state.skips[date]||{memo:"",at:Date.now()};
+        $("#dayDialog").close();
+        save();
+        toast("1食分を後ろへ繰り越しました");
+      });
+      stack.appendChild(sk);
+      const mv=document.createElement("button");mv.className="btn";mv.type="button";mv.textContent="この1食を別日に移動";
+      mv.addEventListener("click",()=>{pendingMove=date;$("#moveDate").value=date;$("#dayDialog").close();$("#moveDialog").showModal()});stack.appendChild(mv);
+
+      const editBatch=document.createElement("button");
+      editBatch.className="btn";
+      editBatch.type="button";
+      editBatch.textContent=`${short(b.madeDate)}作成分を編集`;
+      editBatch.addEventListener("click",()=>{
+        $("#dayDialog").close();
+        openBatchEdit(b.id);
+      });
+      stack.appendChild(editBatch);
+
+      const deleteBatch=document.createElement("button");
+      deleteBatch.className="btn danger";
+      deleteBatch.type="button";
+      deleteBatch.textContent=`${short(b.madeDate)}作成分をすべて削除`;
+      deleteBatch.addEventListener("click",()=>{
+        const dates=vegDates(b.id);
+        const ok=confirm(`${short(b.madeDate)}作成の野菜ストック${dates.length}食分をすべて削除しますか？\n肉の予定は削除しません。`);
+        if(!ok)return;
+
+        dates.forEach(d=>{
+          delete state.vegByDate[d];
+          setEaten(d,false);
+        });
+        state.batches=state.batches.filter(x=>x.id!==b.id);
+
+        $("#dayDialog").close();
+        save();
+        toast(`${short(b.madeDate)}作成分をすべて削除しました`);
+      });
+      stack.appendChild(deleteBatch);
+    }
+    if(meat){const rm=document.createElement("button");rm.className="btn";rm.type="button";rm.textContent="この日の肉だけ外す";rm.addEventListener("click",()=>{delete state.meatByDate[date];$("#dayDialog").close();save()});stack.appendChild(rm)}
+    w.appendChild(stack);
+  }else{
+    const note=document.createElement("div");note.className="note";note.textContent="この日は野菜ストックの予定がありません。";w.appendChild(note);
+    if(skip){
+      const r=document.createElement("div");
+      r.className="reason";
+      r.textContent=skip.memo?`食べなかった／${skip.memo}`:"食べなかった";
+      w.appendChild(r);
+
+      const memoBtn=document.createElement("button");
+      memoBtn.className="btn";
+      memoBtn.style.marginTop="10px";
+      memoBtn.style.width="100%";
+      memoBtn.type="button";
+      memoBtn.textContent=skip.memo?"メモを編集":"メモを追加";
+      memoBtn.addEventListener("click",()=>{
+        pendingMemo=date;
+        $("#skipMemoOnly").value=skip.memo||"";
+        $("#dayDialog").close();
+        $("#memoDialog").showModal();
+      });
+      w.appendChild(memoBtn);
+    }
+    const c=candidateFor(date);
+    if(c){
+      const future=c.future.sort(),from=future[future.length-1],info=document.createElement("div");info.className="reason";
+      info.textContent=`${short(c.b.madeDate)}作成分の最後の予定（${short(from)}）を、この日に1食分前倒しできます。`;w.appendChild(info);
+      const btn=document.createElement("button");btn.className="btn primary";btn.style.marginTop="10px";btn.style.width="100%";btn.type="button";btn.textContent="この日に1食分前倒し";
+      btn.addEventListener("click",()=>{forwardOne(date);$("#dayDialog").close()});w.appendChild(btn);
+    }
+  }
+  $("#dayDialog").showModal();
+}
+
+
+$("#saveSkipMemo").addEventListener("click",()=>{
+  if(!pendingMemo)return;
+  const memo=$("#skipMemoOnly").value.trim();
+  state.skips[pendingMemo]=state.skips[pendingMemo]||{memo:"",at:Date.now()};
+  state.skips[pendingMemo].memo=memo;
+  pendingMemo=null;
+  $("#memoDialog").close();
+  save();
+  toast(memo?"メモを保存しました":"メモを削除しました");
+});
+function shiftAfterSkip(date){
+  const futureDates=[...new Set([...Object.keys(state.vegByDate),...Object.keys(state.meatByDate)])]
+    .filter(d=>d>=date&&!isEaten(d)).sort();
+  if(!futureDates.includes(date))return;
+  let carry={veg:state.vegByDate[date]||null,meat:state.meatByDate[date]||null};
+  delete state.vegByDate[date];delete state.meatByDate[date];setEaten(date,false);
+  const later=futureDates.filter(d=>d>date);
+  for(const d of later){
+    const next={veg:state.vegByDate[d]||null,meat:state.meatByDate[d]||null};
+    if(carry.veg)state.vegByDate[d]=carry.veg;else delete state.vegByDate[d];
+    if(carry.meat)state.meatByDate[d]=carry.meat;else delete state.meatByDate[d];
+    carry=next;
+  }
+  if(carry.veg||carry.meat){
+    let target=add(later.length?later[later.length-1]:date,1);
+    while(state.vegByDate[target]||state.meatByDate[target])target=add(target,1);
+    if(carry.veg)state.vegByDate[target]=carry.veg;if(carry.meat)state.meatByDate[target]=carry.meat;
+  }
+  cleanupBatches();
+}
+
+
+$("#saveBatchEdit").addEventListener("click",()=>{
+  const id=pendingBatchEdit;
+  const b=id?batch(id):null;
+  if(!b)return;
+
+  const made=$("#editMade").value;
+  const dates=$$(".editEat").map(x=>x.value);
+
+  if(!made||dates.some(x=>!x)){
+    alert("作った日と4つの予定日を入力してください。");
+    return;
+  }
+
+  if(dates[0]<made||dates[1]<=dates[0]||dates[2]<=dates[1]||dates[3]<=dates[2]){
+    alert("①は作った日以降、②〜④は前の日付より後を選んでください。");
+    return;
+  }
+
+  const conflict=dates.find(d=>{
+    const existing=vegId(d);
+    return existing && existing!==id;
+  });
+
+  if(conflict){
+    alert(`${jp(conflict)}には別の野菜ストックがあります。`);
+    return;
+  }
+
+  // 旧4食分だけ外し、同じバッチIDで新しい予定へ入れ直す
+  vegDates(id).forEach(d=>{
+    delete state.vegByDate[d];
+    setEaten(d,false);
+  });
+
+  b.madeDate=made;
+  dates.forEach(d=>state.vegByDate[d]=id);
+
+  pendingBatchEdit=null;
+  $("#editBatchDialog").close();
+  save();
+  toast(`${short(made)}作成分に変更しました`);
+});
+
+$("#confirmMove").addEventListener("click",()=>{
+  const from=pendingMove,to=$("#moveDate").value;if(!from||!to)return;
+  if(to===from){$("#moveDialog").close();return}
+  if(state.vegByDate[to]){alert("移動先にはすでに野菜ストックがあります。");return}
+  const id=state.vegByDate[from];if(id)state.vegByDate[to]=id;delete state.vegByDate[from];
+  if(state.meatByDate[from]){state.meatByDate[to]=state.meatByDate[from];delete state.meatByDate[from]}
+  setEaten(from,false);pendingMove=null;$("#moveDialog").close();save();toast(`${short(to)}へ移動しました`);
+});
+
+$("#prevMonth").addEventListener("click",()=>{view=new Date(view.getFullYear(),view.getMonth()-1,1);render()});
+$("#nextMonth").addEventListener("click",()=>{view=new Date(view.getFullYear(),view.getMonth()+1,1);render()});
+$("#undoBtn").addEventListener("click",undoOne);
+$("#todayBtn").addEventListener("click",()=>{const d=new Date();view=new Date(d.getFullYear(),d.getMonth(),1);render()});
+$("#addVegBtn").addEventListener("click",openVeg);$("#addMeatBtn").addEventListener("click",openMeat);
+$$("[data-close]").forEach(b=>b.addEventListener("click",()=>document.getElementById(b.dataset.close).close()));
+
+$("#exportBtn").addEventListener("click",()=>{
+  const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");
+  a.href=url;a.download=`野菜ストック_バックアップ_${toStr(new Date())}.json`;a.click();URL.revokeObjectURL(url);
+});
+$("#importBtn").addEventListener("click",()=>$("#importFile").click());
+$("#importFile").addEventListener("change",async e=>{
+  const f=e.target.files[0];if(!f)return;
+  try{const x=JSON.parse(await f.text());if(!x||!x.vegByDate)throw new Error();if(confirm("現在のデータをバックアップ内容で置き換えますか？")){state=x;save();toast("復元しました")}}
+  catch{alert("読み込めるバックアップファイルではありません。")}e.target.value="";
+});
+$("#resetBtn").addEventListener("click",()=>{if(confirm("すべてのデータを削除しますか？")){state=blank();save();toast("すべて削除しました")}});
+
+render();
+updateUndoButton();
+})();
+</script>
+</body>
+</html>
